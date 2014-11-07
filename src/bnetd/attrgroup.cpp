@@ -285,8 +285,12 @@ namespace pvpgn
 
 		extern int attrgroup_load(t_attrgroup *attrgroup, const char *tab)
 		{
-			assert(attrgroup);
-			assert(attrgroup->storage);
+//			assert(attrgroup);
+//			assert(attrgroup->storage);
+			if (!attrgroup || !attrgroup->storage) {
+                                eventlog(eventlog_level_error, __FUNCTION__, "got NULL attrgroup or storage");
+                                return 0;
+			}
 
 			if (FLAG_ISSET(attrgroup->flags, ATTRGROUP_FLAG_LOADED))
 			{
@@ -350,12 +354,17 @@ namespace pvpgn
 			return storage->read_accounts(flag, _cb_read_accounts, &cbdata);
 		}
 
+		// returns eighter escaped+fixed key or NULL in error case
 		static const char *attrgroup_escape_key(const char *key)
 		{
 			const char *newkey, *newkey2;
 			char *tmp;
 
 			newkey = key;
+			if(!key) {
+				eventlog(eventlog_level_error, __FUNCTION__, "got NULL key");
+				return newkey;
+				}
 
 			if (!strncasecmp(key, "DynKey", 6)) {
 				/* OLD COMMENT, MIGHT NOT BE VALID ANYMORE
@@ -375,34 +384,52 @@ namespace pvpgn
 				newkey = tmp;
 			}
 
-			if (newkey != key) {
-				newkey2 = storage->escape_key(newkey);
-				if (newkey2 != newkey) {
-					xfree((void*)newkey);
-					newkey = newkey2;
+			if (!newkey) {
+				eventlog(eventlog_level_error, __FUNCTION__, "NULL newkey");
+				return newkey;
 				}
-			}
-			else newkey = storage->escape_key(key);
 
-			return newkey;
+			newkey2 = storage->escape_key(newkey);
+
+			if (newkey != key) { // if strncpy has been used for key
+					xfree((void*)newkey);
+			}
+
+			return newkey2;
 		}
 
-		static t_attr *attrgroup_find_attr(t_attrgroup *attrgroup, const char *pkey[], int escape)
+		// returns eighter proper value from cache or storage->read_attr, or NULL or FIXME! some shit from hlist
+		//static t_attr *attrgroup_find_attr(t_attrgroup *attrgroup, const char *pkey[], int escape)
+		static t_attr *attrgroup_find_attr(t_attrgroup *attrgroup, const char *pkey, int escape)
 		{
-			const char *val;
+//			const char *val;
 			t_hlist *curr, *last, *last2;
 			t_attr *attr;
+			const char *pkeynew;
 
-			assert(attrgroup);
-			assert(pkey);
-			assert(*pkey);
+//			assert(attrgroup);
+//			assert(pkey);
+//			assert(*pkey);
+			if (!attrgroup) {
+                                eventlog(eventlog_level_error, __FUNCTION__, "got NULL attrgroup");
+                                return NULL;
+			}
+			if (!pkey) {
+                                eventlog(eventlog_level_error, __FUNCTION__, "got NULL pkey");
+                                return NULL;
+			}
 
 			/* only if the callers tell us to */
-			if (escape) *pkey = attrgroup_escape_key(*pkey);
+			if (escape) pkeynew = attrgroup_escape_key(pkey);
+			else pkeynew = pkey;
 
-			const char * tab = key_get_tab(*pkey);
+			const char * tab = key_get_tab(pkeynew);
+			if (!tab) {
+				eventlog(eventlog_level_error, __FUNCTION__, "got NULL tab");
+				return NULL; // FIXME! delete pkeynew if required
+			}
 			/* trigger loading of attributes if not loaded already */
-			if (attrgroup_load(attrgroup, tab))
+			if (attrgroup_load(attrgroup, tab)) // FIXME! to check attrgroup_load function
 				return NULL;	/* eventlog happens earlier */
 			xfree((void*)tab);
 
@@ -412,11 +439,14 @@ namespace pvpgn
 			last = &attrgroup->list;
 			last2 = NULL;
 
-			hlist_for_each(curr, &attrgroup->list) {
-				attr = hlist_entry(curr, t_attr, link);
+// for (pos = (head)->next; pos != (head); pos = pos->next)
+// define elist_entry(ptr,type,member) ((type*)(((char*)ptr)-offsetof(type,member)))
 
-				if (!strcasecmp(attr_get_key(attr), *pkey)) {
-					val = attr_get_val(attr);
+			hlist_for_each(curr, &attrgroup->list) {
+				attr = hlist_entry(curr, t_attr, link); // FIXME! make sure addresses are proper
+
+				if (!strcasecmp(attr_get_key(attr), pkeynew)) {
+//					val = attr_get_val(attr); // FIXME! wtf is val?
 					/* key found, promote it so it's found faster next time */
 					hlist_promote(curr, last, last2);
 					break;
@@ -426,7 +456,7 @@ namespace pvpgn
 			}
 
 			if (curr == &attrgroup->list) {	/* no key found in cached list */
-				attr = (t_attr*)storage->read_attr(attrgroup->storage, *pkey);
+				attr = (t_attr*)storage->read_attr(attrgroup->storage, pkeynew);
 				if (attr) hlist_add(&attrgroup->list, &attr->link);
 			}
 
@@ -444,7 +474,7 @@ namespace pvpgn
 
 			/* no need to check for attrgroup, key */
 
-			attr = attrgroup_find_attr(attrgroup, &newkey, escape);
+			attr = attrgroup_find_attr(attrgroup, newkey, escape);
 
 			// if attribute found
 			if (attr) 
@@ -452,7 +482,7 @@ namespace pvpgn
 
 			// if attribute is null then return default attribute value
 			if (!val && attrgroup != attrlayer_get_defattrgroup())
-				val = attrgroup_get_attrlow(attrlayer_get_defattrgroup(), newkey, 0);
+				val = attrgroup_get_attrlow(attrlayer_get_defattrgroup(), newkey, 0); // FIXME! newkey not changed anymore
 
 			if (newkey != key) xfree((void*)newkey);
 
@@ -489,7 +519,8 @@ namespace pvpgn
 				return -1;
 			}
 
-			attr = attrgroup_find_attr(attrgroup, &newkey, 1);
+			attr = attrgroup_find_attr(attrgroup, newkey, 1); // FIXME! newkey has now been changed anymore
+			newkey = attrgroup_escape_key(newkey); // FIXME! dirty hack, don't forgot to free old newkey
 
 			if (attr) {
 				if (attr_get_val(attr) == val ||
