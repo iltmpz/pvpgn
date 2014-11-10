@@ -539,7 +539,7 @@ namespace pvpgn
 		BigInt::random(int size)
 	{
 			BigInt result;
-			int i, j;
+			unsigned int i, j;
 			unsigned int r;
 
 			assert(size > 0);
@@ -610,7 +610,7 @@ namespace pvpgn
 	void
 		BigInt::getData(unsigned char* out, int byteCount, int blockSize, bool bigEndian) const
 	{
-			int i, j;
+			unsigned int i, j;
 			unsigned char* pos;
 
 			std::memset(out, 0, byteCount);

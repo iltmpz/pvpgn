@@ -333,7 +333,7 @@ namespace pvpgn
 			unsigned id = 0;
 			int init_count = 0;
 
-			bool first = true;
+//			bool first = true;
 			std::map<std::string, int> tmpdata;
 			AdCtagRefMap when;
 			unsigned next_id;

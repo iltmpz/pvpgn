@@ -570,7 +570,7 @@ namespace pvpgn
 			}
 
 
-			if (tname = account_get_name(account)) {
+			if ((tname = account_get_name(account))) {
 				if (find_substr((char*)tname, vague_username)) {
 					return tname;
 				}

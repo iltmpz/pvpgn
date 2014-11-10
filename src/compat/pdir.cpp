@@ -181,7 +181,7 @@ namespace pvpgn
 				{
 					std::vector<std::string> subfiles = dir_getfiles(full_file_name.c_str(), ext, recursive);
 
-					for (int i = 0; i < subfiles.size(); ++i)
+					for (unsigned int i = 0; i < subfiles.size(); ++i)
 						dfiles.push_back(subfiles[i]);
 				}
 				continue;

@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (C) 2014  HarpyWar (harpywar@gmail.com)
 *
 * This program is free software; you can redistribute it and/or
@@ -197,7 +197,7 @@ namespace pvpgn
 			std::string original, translate;
 
 			// iterate language list
-			for (int i = 0; i < (sizeof(languages) / sizeof(*languages)); i++)
+			for (unsigned int i = 0; i < (sizeof(languages) / sizeof(*languages)); i++)
 			{
 				lang_filename = i18n_filename(prefs_get_localizefile(), languages[i]);
 				if (FILE *f = fopen(lang_filename.c_str(), "r")) {
@@ -271,7 +271,7 @@ namespace pvpgn
 			}
 			try
 			{
-				if (lang = conn_get_gamelang_localized(c))
+				if ((lang = conn_get_gamelang_localized(c)))
 				if (!(format = _find_string(fmt, lang)))
 					format = fmt; // if not found use original
 
@@ -333,7 +333,7 @@ namespace pvpgn
 			if (!code || code[0] == '\0')
 				return tag_str_to_uint(countries[0][0]);
 
-			for (int i = 0; i < (sizeof(countries) / sizeof(*countries)); i++)
+			for (unsigned int i = 0; i < (sizeof(countries) / sizeof(*countries)); i++)
 			if (strcasecmp(code, countries[i][0]) == 0)
 				return tag_str_to_uint(countries[i][1]);
 
@@ -384,7 +384,7 @@ namespace pvpgn
 				std::string out = "     ";
 				char lang_str[5];
 				// display available language list
-				for (int i = 0; i < (sizeof(languages) / sizeof(*languages)); i++)
+				for (unsigned int i = 0; i < (sizeof(languages) / sizeof(*languages)); i++)
 				{
 					tag_uint_to_str(lang_str, languages[i]);
 
@@ -457,7 +457,7 @@ namespace pvpgn
 #ifndef REGION_CONVERT_RUSSIAN
 
 		typedef struct ConvLetter {
-			char    win1251;
+			unsigned char    win1251;
 			int             unicode;
 		} Letter;
 
